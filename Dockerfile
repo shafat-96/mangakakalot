@@ -1,18 +1,22 @@
-# Use a lightweight Node.js base image
-FROM node:20-alpine
+# Use a small, secure Node.js base image
+FROM node:20-alpine AS base
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package.json package-lock.json* ./
-RUN npm install --production
+# Install only production dependencies (faster & smaller image)
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Copy the rest of your app
+# Copy the rest of the application
 COPY . .
 
-# Expose a port (optional, only if your app listens on one)
+# Ensure the container runs as a non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+# Expose the app port
 EXPOSE 3000
 
-# Start the app
-CMD ["npm", "start"]
+# Run the app
+CMD ["node", "index.js"]
